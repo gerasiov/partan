@@ -36,6 +36,8 @@ void help()
 	printf("Copyright (c) 2014 Alexander Gerasiov <gq@cs.msu.su>\n");
 	printf("Simple and stupid analizer for MS-DOS partion table.\n");
 	printf("Supports only LBA, ignores (but prints) CHS addressing.\n");
+	printf("\n");
+	usage("partan");
 }
 
 #define BLOCK_SIZE 512
