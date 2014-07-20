@@ -159,35 +159,26 @@ int main(int argc, const char** argv)
 		return -1;
 	}
 
-	page = mmap(NULL, BLOCK_SIZE, PROT_READ, MAP_SHARED, fd, 0);
-	
-	if (page == MAP_FAILED) {
-		printf("mmap failed: %s\n", strerror(errno));
-		return -1;
-	}
+	uint32_t next_ebr = 0;
+	uint32_t f_ebr = 0;
+	uint32_t ebr = 0;
 
-	struct disk_block *block = (struct disk_block *)page;
-	
-
-	uint32_t ebr_off = analize_block(block, 0, 0, &p_num);
-	uint32_t f_ebr = ebr_off;
-	uint32_t ebr = f_ebr;
-
-	munmap(page, BLOCK_SIZE);
-
-	while (ebr_off) {
+	do {
 		page = mmap(NULL, page_size, PROT_READ, MAP_SHARED, fd, ((ebr * BLOCK_SIZE) / page_size) * page_size);
 		if (page == MAP_FAILED) {
 			printf("mmap failed: %s\n", strerror(errno));
 			return -1;
 		}
 
-		block = (struct disk_block *)((char *)page + ((ebr * BLOCK_SIZE) % page_size));
+		struct disk_block *block = (struct disk_block *)((char *)page + ((ebr * BLOCK_SIZE) % page_size));
 		
-		ebr_off = analize_block(block, ebr, f_ebr, &p_num);
-		ebr = f_ebr + ebr_off;
+		next_ebr = analize_block(block, ebr, f_ebr, &p_num);
+		ebr = f_ebr + next_ebr;
+		if (f_ebr == 0)
+			f_ebr = next_ebr;
+
 		munmap(page, page_size);
-	}
+	} while (next_ebr);
 
 	return 0;
 }
