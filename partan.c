@@ -27,7 +27,7 @@
 
 void usage(const char *name)
 {
-	printf("Usage:\n\t%s <dev|file>\n\t%s --help", name, name);
+	printf("Usage:\n\t%s <dev|file>\n\t%s --help\n", name, name);
 }
 
 void help()
