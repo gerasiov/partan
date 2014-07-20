@@ -77,7 +77,8 @@ uint32_t analize_entry(struct part_entry *entry, int e_num, int p_num, uint32_t 
 	printf("end: 0x%.2x%.2x%.2x\n", entry->chs_end[0], entry->chs_end[1], entry->chs_end[2]); 
 
 	printf("LBA begin: 0x%.8x (%u)\tsize: 0x%.8x (%u)\tend*: %.8x (%u)\n",
-			entry->lba_begin + offset, entry->lba_begin + offset,
+			entry->lba_begin?entry->lba_begin + offset:0,
+			entry->lba_begin?entry->lba_begin + offset:0,
 			entry->lba_size, entry->lba_size,
 			entry->lba_size?entry->lba_begin + entry->lba_size - 1 + offset:0,
 			entry->lba_size?entry->lba_begin + entry->lba_size - 1 + offset:0
