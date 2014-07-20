@@ -112,7 +112,7 @@ uint32_t analize_block(struct disk_block *block, uint32_t ebr, uint32_t f_ebr, i
 		}
 	} else { // EBR
 		// First entry contain partition with offset from current EBR
-		analize_entry(&block->entry[0], 1, *p_num, ebr);
+		analize_entry(&block->entry[0], 1, (*p_num)++, ebr);
 		// Second entry contains next EBR with offset from the first EBR
 		next_ebr = analize_entry(&block->entry[1], 2, 0, f_ebr);
 	}
