@@ -59,6 +59,9 @@ struct disk_block {
 } __attribute__ ((__packed__));
 
 uint32_t analize_entry(struct part_entry *entry, int e_num, int p_num, uint32_t offset)
+//e_num - number of entry in MBR/EBR
+//p_num - number of partition
+//offset - 0 for MBR, EBR offset for extented partition, first EBR offset for next EBR link.
 {
 	if (p_num)
 		printf("------ Entry %d (partition %d) ------\n", e_num, p_num);
@@ -81,12 +84,15 @@ uint32_t analize_entry(struct part_entry *entry, int e_num, int p_num, uint32_t 
 	if (entry->type == 0x05 || entry->type == 0x0f) {
 		if (entry->lba_begin == 0)
 			printf("WARNING: type == 0x05 | 0x0f (Extended), but LBA begin = 0\n");
-		return entry->lba_begin;
+		return entry->lba_begin; // return offset of (next) EBR
 	}
 	return 0;
 }
 
 uint32_t analize_block(struct disk_block *block, uint32_t ebr, uint32_t f_ebr, int *p_num)
+// ebr - 0 for MBR, this EBR offset for EBR.
+// f_ebr - 0 for MBR, first EBR offset for EBR
+// p_num - counter for partition
 {
 	if (!ebr)
 		printf("======= MBR =======\n");
@@ -94,7 +100,7 @@ uint32_t analize_block(struct disk_block *block, uint32_t ebr, uint32_t f_ebr, i
 		printf("======= EBR (%u) =======\n", ebr);
 
 	uint32_t next_ebr = 0;
-	if (!ebr) {
+	if (!ebr) { // MBR: all 4 entries contains partition.
 		for (unsigned int i = 0; i < sizeof(block->entry) / sizeof(block->entry[0]); i++) {
 			size_t n = analize_entry(&block->entry[i], i+1, (*p_num)++, ebr);
 			if (next_ebr && n)
@@ -102,8 +108,10 @@ uint32_t analize_block(struct disk_block *block, uint32_t ebr, uint32_t f_ebr, i
 			if (n)
 				next_ebr = n;
 		}
-	} else {
+	} else { // EBR
+		// First entry contain partition with offset from current EBR
 		analize_entry(&block->entry[0], 1, *p_num, ebr);
+		// Second entry contains next EBR with offset from the first EBR
 		next_ebr = analize_entry(&block->entry[1], 2, 0, f_ebr);
 	}
 	
