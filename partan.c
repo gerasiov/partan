@@ -79,6 +79,20 @@ struct disk_block read_block(unsigned int num)
 	return _block;
 }
 
+int write_block(unsigned int num, struct disk_block *block)
+{
+	if (lseek64(dev_fd, (off64_t)num * sizeof(*block), SEEK_SET) == -1) {
+		fprintf(stderr, "lseek failed: %s\n", strerror(errno));
+		exit(1);
+	}
+
+	if (write(dev_fd, block, sizeof(*block)) != sizeof(*block)) {
+		fprintf(stderr, "write failed: %s\n", strerror(errno));
+		exit(1);
+	}
+	return sizeof(*block);
+}
+
 uint32_t analize_entry(struct part_entry *entry, int e_num, int p_num, uint32_t offset)
 //e_num - number of entry in MBR/EBR
 //p_num - number of partition
