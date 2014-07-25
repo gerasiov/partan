@@ -16,14 +16,15 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
+#define _LARGEFILE64_SOURCE     /* See feature_test_macros(7) */
 
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
-#include <sys/mman.h>
 #include <stdint.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 void usage(const char *name)
 {
@@ -59,6 +60,24 @@ struct disk_block {
 	unsigned char magic1;
 	unsigned char magic2;
 } __attribute__ ((__packed__));
+
+
+int dev_fd;
+
+struct disk_block read_block(unsigned int num)
+{
+	struct disk_block _block;
+	if (lseek64(dev_fd, (off64_t)num * BLOCK_SIZE, SEEK_SET) == -1) {
+		fprintf(stderr, "lseek failed: %s\n", strerror(errno));
+		exit(1);
+	}
+
+	if (read(dev_fd, &_block, sizeof(_block)) != sizeof(_block)) {
+		fprintf(stderr, "read failed: %s\n", strerror(errno));
+		exit(1);
+	}
+	return _block;
+}
 
 uint32_t analize_entry(struct part_entry *entry, int e_num, int p_num, uint32_t offset)
 //e_num - number of entry in MBR/EBR
@@ -145,14 +164,10 @@ int main(int argc, const char** argv)
 
 	const char *file = argv[1];
 
-	long page_size = sysconf(_SC_PAGE_SIZE);
-
-	void * page = NULL;
-
 	int p_num = 1;
 
-	int fd = open(file, O_RDONLY);
-	if (fd < 0) {
+	dev_fd = open(file, O_RDONLY);
+	if (dev_fd < 0) {
 		printf("Failed to open %s: %s", file, strerror(errno));
 		return -1;
 	}
@@ -162,26 +177,17 @@ int main(int argc, const char** argv)
 		return -1;
 	}
 
-	uint32_t next_ebr = 0;
-	uint32_t f_ebr = 0;
-	uint32_t ebr = 0;
+	uint32_t current_record = 0;
+	uint32_t next_record = 0;
+	uint32_t first_ebr = 0;
 
 	do {
-		page = mmap(NULL, page_size, PROT_READ, MAP_SHARED, fd, ((ebr * BLOCK_SIZE) / page_size) * page_size);
-		if (page == MAP_FAILED) {
-			printf("mmap failed: %s\n", strerror(errno));
-			return -1;
-		}
-
-		struct disk_block *block = (struct disk_block *)((char *)page + ((ebr * BLOCK_SIZE) % page_size));
-		
-		next_ebr = analize_block(block, ebr, f_ebr, &p_num);
-		ebr = f_ebr + next_ebr;
-		if (f_ebr == 0)
-			f_ebr = next_ebr;
-
-		munmap(page, page_size);
-	} while (next_ebr);
+		struct disk_block block = read_block(current_record);
+		next_record = analize_block(&block, current_record, first_ebr, &p_num);
+		current_record = first_ebr + next_record;
+		if (first_ebr == 0)
+			first_ebr = next_record;
+	} while (next_record);
 
 	return 0;
 }
