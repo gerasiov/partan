@@ -41,8 +41,6 @@ void help()
 	usage("partan");
 }
 
-#define BLOCK_SIZE 512
-
 struct part_entry {
 	unsigned char status;
 	unsigned char chs_begin[3];
@@ -67,7 +65,7 @@ int dev_fd;
 struct disk_block read_block(unsigned int num)
 {
 	struct disk_block _block;
-	if (lseek64(dev_fd, (off64_t)num * BLOCK_SIZE, SEEK_SET) == -1) {
+	if (lseek64(dev_fd, (off64_t)num * sizeof(_block), SEEK_SET) == -1) {
 		fprintf(stderr, "lseek failed: %s\n", strerror(errno));
 		exit(1);
 	}
@@ -186,8 +184,8 @@ int main(int argc, const char** argv)
 		return -1;
 	}
 
-	if (BLOCK_SIZE != sizeof(struct disk_block)) {
-		printf("Internal error: BLOCK_SIZE != sizeof(struct disk_block)\n");
+	if (sizeof(struct disk_block) != 512) {
+		printf("Internal error: sizeof(struct disk_block) != 512\n");
 		return -1;
 	}
 
